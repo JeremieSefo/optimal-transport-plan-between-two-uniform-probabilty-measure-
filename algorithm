@@ -1,0 +1,49 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy
+from scipy.optimize import linprog
+
+def optTrans(p, q, c): #c the cost matrix, p and q the discretize probability measures
+    m = len(p)
+    n = len (q)
+    
+    
+    c_vect = c.reshape((m*n, 1), order = 'F') #our linear optimisation function will need c in a vector form
+    
+    #building the equality constraint matrix 
+    A_p = np.zeros((n, m*n))
+    A_q = np.zeros((m, m*n))
+    for i in range(n):
+        for j in range(i*m, i*m + m):
+            A_p[i, j] = 1.
+    for i in range(m):
+        for j in range(n):
+            A_q[i, i+m*j] = 1.
+    A = np.vstack([A_q, A_p])
+
+    # Construct vector b
+    b = np.vstack([p, q])
+    # Solve the linear program
+    res = linprog(c_vect, A_eq = A, b_eq = b)
+    # Print results
+    print("message:", res.message)
+    print("nit:", res.nit)
+    print("fun:", res.fun)
+    print("z:", res.x)
+    print("X:", res.x.reshape((m,n), order='F'))
+
+#let's test our method
+
+for k in range(4, 6): # for multiple grid sizes
+    n = k
+    m = 2*k                   #discretize the interval [0,1] twice finer as [0, 1/2]
+    p = (1/m)*np.ones((m,1))  #uniform probability on [0, 1] 
+    q = (1/n)*np.ones((n,1))  #uniform probability on [0, 1/2] 
+    c = np.zeros((m, n))
+                              #Define the cost matrix for the Wassertein-2 distance
+    for i in range(m):
+        for j in range (n):
+            c[i, j] = ((i / (m -1)) - (j / (2*(n-1))) )**2 
+    
+                              #find the optimal transport plan
+    optTrans(p, q, c)         
